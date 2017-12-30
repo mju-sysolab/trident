@@ -1,0 +1,122 @@
+\documentclass[12pt]{article} 
+\usepackage{latex8}
+%\usepackage{times}
+\usepackage{graphicx}
+
+%------------------------------------------------------------------------- 
+% take the % away on next line to produce the final camera-ready version 
+%\pagestyle{empty}
+
+%-------------------------------------------------------------------------
+
+\begin{document}
+
+\title{Float Compiler Reference Manual }
+       
+\author{\\
+Los Alamos National Laboratory \\ MS B287\\
+Los Alamos, NM 87545\\ \\
+% For a paper whose authors are all at the same institution, 
+% omit the following lines up until the closing ``}''.
+% Additional authors and addresses can be added with ``\and'', 
+% just like the second author.
+%\and
+%Second Author\\
+%Institution2\\
+%First line of institution2 address\\ Second line of institution2 address\\ 
+%SecondAuthor@institution2.com\\
+}
+
+\maketitle
+
+%\thispagestyle{empty}
+
+%\begin{abstract}
+%\end{abstract}
+
+
+
+%------------------------------------------------------------------------- 
+\section{Introduction}
+Trident is an high-level language (HLL) compiler for scientific
+algorithms written in C that use float and double data types.  It
+produces circuits in reconfigurable logic that exploit the
+micro-instruction and pipelined parallelism.  Trident automatically
+extracts parallelism and pipelines loop bodies using compiler
+optimizations and hardware scheduling techniques.  The Trident
+compiler consists of four principal steps shown in
+Figure~\ref{fig:overview}.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=.6\textwidth]{figures/overview}
+\caption{\label{fig:overview} Four principal steps in the Trident Compiler.}
+\end{figure}
+
+
+The first step in the Trident compilation process is the LLVM C/C++
+front-end.  The LLVM (Low Level Virtual Machine) compiler
+framework\cite{lattner04llvm} is used to parse input languages, and
+produce a low-level platform independent object code.  LLVM optimizes
+the object code and then Trident parses the result into its own
+intermediate representation (IR).  This approach allows Trident to
+concern itself with hardware compilation and leave the parsing and
+baseline optimizations in LLVM.
+
+The Trident compiler's second step, IR transformation, accomplishes
+several important tasks.  First, operations are converted into
+predicated form to allow the creation of hyperblocks.  Next, further
+optimizations are performed to remove any unnecessary operations.
+Finally, all floating point operations are mapped into a specific
+hardware library selected by the user.
+
+Floating point data types, with 32- or 64-bit width, present
+challenges in terms of resource allocation, both on- and off-chip.
+Floating point modules require significantly more logic blocks on a
+reconfigurable chip than small integer operations.  The large input
+width also implies that more memory bandwidth is required for floating
+point arrays. Scheduling is further complicated by the interaction
+with resource allocation.  The operations will be scheduled with one
+of four different scheduling algorithms: ASAP, ALAP, Force Directed,
+and for pipelined loops, Iterative Modulo scheduling.
+
+The final step synthesizes the results of the scheduler into Register
+Transfer Level (RTL) VHDL.  Hierarchy is utilized in the hardware
+description in order to preserve modularity.  The top-level circuit
+contains subcircuits for each block in the control flow graph input
+and also a single register file.  The register file is shared by all
+block subcircuits.  Each block subcircuit contains a state machine and
+a datapath subcircuit.  The state machine is determined by the
+initiation interval of the design, and it controls the timing of the
+block's datapath.  The datapath implements the logic needed to
+represent the flow of data through all of the operations found in the
+control flow graph.  It contains operators, predicate logic, local
+registers and wires that connect all of the components.  All of these
+elements combine to produce a highly optimized application specific
+circuit.
+
+Trident provides an open framework for exploration of floating-point
+libraries and computation in FPGAs.  The Trident framework allows for
+user optimizations to be added at several levels of abstraction.
+Users can trade-off clock speed and latency through their selection of
+different floating-point libraries and optimizations.  It is also
+possible for users to import their own floating point libraries.  New
+hardware platforms may be added by defining new interface description
+files and producing the code to tie the design to the description
+interface.
+
+
+%------------------------------------------------------------------------- 
+%\input{org}
+\input{install}
+\input{usage}
+%\input{build}
+%\input{test}
+
+%------------------------------------------------------------------------- 
+%\nocite{ex1,ex2}
+\bibliographystyle{plain}
+\bibliography{manual}
+
+\end{document}
+

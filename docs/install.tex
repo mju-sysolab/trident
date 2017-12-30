@@ -1,0 +1,113 @@
+\section{Source Installation}
+There are several required elements to use the srouce installation.
+
+\begin{itemize}
+\item LLVM - obtain version 1.5 from www.llvm.org
+\item LLVM cfrontend - obtain version 1.5 from www.llvm.org
+\item ant - obtain 1.6.X from ant.apach.org, 1.7.X is untested.
+\item antlr.jar - obtain 2.7.3 or later from www.antlr.org
+\item java-getopt.jar - obtain version 1.11 or later from \\
+http://www.urbanophile.com/arenn/hacking/download.html
+\item Java - obtain from java.sun.com (tested with 1.4.2)
+\item Python - obtain from www.python.org
+\item gcc, unix environment, etc.
+\item Graphviz (dotty and friends) from www.graphviz.org can be useful, but is not required.
+\end{itemize}
+
+First obtain LLVM and compile LLVM.  The following works on RHEL 3.0u5
+with tcsh, and detailed instructions are available on www.llvm.org.
+If you prefer bash, use the proper commands for setting variables
+(e.g., export BLAH=SOME\_VALUE and export
+PATH=\$PATH:NEW\_PATH\_VALUE, etc.).
+
+\begin{verbatim}
+> tar xzf llvm-1.5.tar.gz
+> tar xzf cfrontend-1.5.i686-redhat-linux-gnu.tar.gz
+
+#
+# must have java
+#
+> which java
+>
+> setenv TOP `pwd`
+
+> cd cfrontend/x86/
+> ./fixheaders
+> cd ../..
+
+> set path = ( $path $TOP/cfrontend/x86/llvm-gcc/bin/ )
+
+> mkdir llvm-obj
+> cd llvm-obj
+
+> ../llvm/configure
+> make
+# wait 
+
+> cd ..
+> set path = ( $path $TOP/llvm-obj/Debug/bin/ )
+
+\end{verbatim}
+
+Now LLVM should be built.  This will build the Debug version of LLVM
+and anything else may not work without changing some of the scripts
+provided.
+
+Next, unpack the Trident files and execute the
+following:\footnote{This is a continuation of the above and uses the
+  same TOP variable.  It could be modified to support a different
+  location than parallel with LLVM.}
+
+\begin{verbatim}
+> tar xzf dist.tgz
+
+# build llv
+# 
+> cd trident/llv-src
+> ./mkconf.sh --src=$TOP/llvm
+> ./configure --with-llvmsrc=$TOP/llvm/ --with-llvmobj=$TOP/llvm-obj/
+
+> make
+> cp Debug/bin/llv ../bin
+> strip ../bin/llv
+> chmod a+x ../bin/llv
+
+> cd ..
+
+# copy jars to $TRIDENT_TOP/lib
+#
+> cp somewhere/antlr.jar lib/
+> cp somewhere/java-getopt.jar lib/
+\end{verbatim}
+
+Next, compile Trident.  This requires ant, python, java and the jars
+just added to the above lib directory.  Modify your Java classpath to
+include the jars.
+
+\begin{verbatim}
+> cd trident-src/fp
+> ant dist
+> cd ../..
+> cp trident-src/dist/lib/Trident.jar lib/
+
+> set path = ($path $TOP/trident/bin )
+
+> setenv TRIDENT_TOP $TOP/trident
+\end{verbatim}
+
+Now, you should have all the tools necessary to run Trident.  Test the 
+compiler using the following:
+
+\begin{verbatim}
+cd examples/conditional
+tcc -t vhdl conditional_a.c run
+
+less conditional_a.vhd
+\end{verbatim}
+
+This will generate a VHDL file for the conditional\_a.c example.  The
+output of the compiler is extremely verbose and needs to be cleaned up.
+Serious errors will cause the compiler to exit, the many warnings can
+usually be safely ignored.
+
+

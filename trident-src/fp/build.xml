@@ -1,0 +1,283 @@
+<!--
+ 
+ LA-CC 05-135 Trident 0.7.1
+
+Copyright Notice
+Copyright 2006 (c) the Regents of the University of California.
+
+This Software was produced under a U.S. Government contract
+(W-7405-ENG-36) by Los Alamos National Laboratory, which is operated
+by the University of California for the U.S. Department of Energy. The
+U.S. Government is licensed to use, reproduce, and distribute this
+Software. Permission is granted to the public to copy and use this
+Software without charge, provided that this Notice and any statement
+of authorship are reproduced on all copies. Neither the Government nor
+the University makes any warranty, express or implied, or assumes any
+liability or responsibility for the user of this Software.
+
+
+-->
+
+
+<project name="FPCompiler" default="compile" basedir="..">
+    <description>
+        Build file for the FPCompiler and its tests.
+    </description>
+  <!-- set global properties for this build -->
+  <property name="src" location="fp"/>
+  <property name="build" location="build"/>
+  <property name="dist"  location="dist"/>
+  <property name="debug" value="on"/>
+  <property name="optimize" value="off"/>
+  <property name="target" value="1.4"/>
+  <property name="deprecation" value="off"/>
+  <property name="trace.lexer" value="no"/>
+  <property name="trace.parser" value="no"/>
+
+  <!-- These are used in the "test" target -->
+  <property name="test.error.mode" value="failatend"/>
+  <property name="test.print.results" value="failedtests"/>
+  <property name="test.pattern" value="**/TEST*.class"/>
+  <property name="test.pattern.path" value="${test.pattern}"/>
+  <property name="test.verbosity" value="true"/>
+  <property name="start.path" value="${build}"/>
+  <property name="start.dir" value=""/>
+
+  <target name="init">
+    <!-- Create the time stamp -->
+    <tstamp/>
+    <property name="build.compiler" value="modern"/>
+
+    <!-- Create the build directory structure used by compile -->
+    <mkdir dir="${build}/fp"/>
+    <copy todir="${build}/fp" preservelastmodified="yes">
+      <fileset dir="${src}" includes="**/*.java,**/*.g,**/*.py,**/*.dat,**/*.java_in,**/*.xml,**/*.dtd" >
+        <exclude name="**/test/**"/>
+      </fileset>
+    </copy> 
+  </target>
+
+  <target name="check-Operator" depends="init"
+   description="Sets Operator.uptodate property if build/fp/flowgraph/Operator.java is more up to date than template/OperatorList.dat" >
+      <uptodate property="Operator.uptodate">
+           <srcfiles dir="${build}/fp/template" includes="OperatorList.dat"/>
+           <mapper type="merge" to="${build}/fp/flowgraph/Operator.java"/>
+      </uptodate>
+  </target>
+
+  <target name="check-Operators" depends="init"
+   description="Sets Operators.uptodate property if build/fp/flowgraph/Operators.java is more up to date than template/OperatorList.dat" >
+      <uptodate property="Operators.uptodate">
+           <srcfiles dir="${build}/fp/template" includes="OperatorList.dat"/>
+           <mapper type="merge" to="${build}/fp/flowgraph/Operators.java"/>
+      </uptodate>
+  </target>
+  
+  <target name="check-OperatorNames" depends="init"
+   description="Sets OperatorNames.uptodate property if build/fp/flowgraph/OperatorNames.java is more up to date than template/OperatorList.dat" >
+      <uptodate property="OperatorNames.uptodate">
+           <srcfiles dir="${build}/fp/template" includes="OperatorList.dat"/>
+           <mapper type="merge" to="${build}/fp/flowgraph/OperatorNames.java"/>
+      </uptodate>
+  </target>
+  
+  <target name="clean-Operator" depends="init,check-Operator" unless="Operator.uptodate">
+    <delete file="${build}/fp/flowgraph/Operator.java"/>
+  </target>
+
+  <target name="clean-Operators" depends="init,check-Operators" unless="Operators.uptodate">
+    <delete file="${build}/fp/flowgraph/Operators.java"/>
+  </target>
+
+  <target name="clean-OperatorNames" depends="init,check-OperatorNames" unless="OperatorNames.uptodate">
+    <delete file="${build}/fp/flowgraph/OperatorNames.java"/>
+  </target>
+
+  <target name="build-operators" 
+    depends="init, clean-Operator,clean-Operators,clean-OperatorNames">
+    <apply executable="python" dest="${build}/fp/flowgraph" parallel="false" 
+     failonerror="true" dir="${build}/fp/template">
+      <arg value="python.py"/>
+      <arg value="-f"/>
+      <srcfile/>
+      <arg value="-p flowgraph"/> 
+      <fileset dir="${build}/fp/template" includes="*_in"/>
+      <mapper type="glob" from="*_in" to="*"/> 
+    </apply>
+  </target>
+
+  <target name="check-parser" depends="init"
+   description="Sets parser.uptodate property if build/fp/parser/LlvmParser.java is more up to date than build/fp/parser/llvm.g" >
+      <uptodate property="parser.uptodate"
+           srcfile="${build}/fp/parser/llvm.g"
+           targetfile="${build}/fp/parser/LlvmParser.java"/>
+  </target>
+  
+  <target name="clean-parser" depends="init,check-parser" unless="parser.uptodate">
+    <delete file="${build}/fp/parser/LlvmLexer.java"/>
+    <delete file="${build}/fp/parser/LlvmLexerTokenTypes.java"/>
+    <delete file="${build}/fp/parser/LlvmParser.java"/>
+  </target>
+
+  <target name="build-parser" depends="init, clean-parser" unless="parser.uptodate">
+    <antlr
+      target="${build}/fp/parser/llvm.g"
+      traceLexer="${trace.lexer}"
+      traceParser="${trace.parser}"
+      outputdirectory="${build}/fp/parser" />
+  </target>
+
+  <target name="compile" depends="init, build-operators, build-parser"
+        description="compile the source, excluding tests " >
+    <!-- Compile the java code from ${src} into ${build}, except tests -->
+    <javac debug="${debug}" srcdir="${build}" includes="fp/**/*.java" excludes="**/test/**" target="${target}" />
+  </target>
+
+  <target name="dist" depends="compile"
+        description="generate the distribution" >
+    <!-- Create the distribution directory -->
+    <mkdir dir="${dist}/lib"/>
+
+    <!-- Put everything in ${build} into the MyProject-${DSTAMP}.jar file -->
+    <jar jarfile="${dist}/lib/Trident.jar" 
+         basedir="${build}"
+         includes="**/*.class **/*.dat **/*.txt"
+         excludes="**/TEST*.class examples/**"
+     />
+
+  </target>
+
+  <target name="clean"
+        description="clean up" >
+    <!-- Delete the ${build} and ${dist} directory trees -->
+    <delete dir="${build}/fp"/>
+    <delete dir="${dist}"/>
+  </target>
+
+
+  <!-- =================================================================== -->
+  <!-- targets for the tests                                               -->
+  <!-- =================================================================== -->
+
+  <target name="init-tests" depends="compile" unless="skip.test">
+    <echo message="Copy tests from fp subdirs named test to build/fp directory tree"/> 
+    <copy todir="${build}/fp" filtering="${filtering}">
+      <fileset dir="fp">
+        <include name="**/test/**"/>
+      </fileset>
+    </copy>
+  </target>
+
+  <target name="compile-tests" depends="init-tests">
+    <!-- Compile the ExecTest class -->
+    <echo message="Compile ExecTest class"/> 
+    <javac srcdir="${build}"
+           destdir="${build}"
+           debug="${debug}"
+           deprecation="${deprecation}"
+           optimize="${optimize}">
+      <include name="fp/util/ant/ExecTest.java"/>
+    </javac>
+
+    <!-- Compile the tests themselves -->
+    <echo message="Compile TEST* classes"/> 
+    <javac srcdir="${start.path}"
+           destdir="${start.path}"
+           debug="${debug}"
+           deprecation="${deprecation}"
+           optimize="${optimize}">
+      <!-- The standard name for tests follows the pattern TEST*.java -->
+      <include name="fp/**/TEST*.java"/>
+      <!-- TEST*.java files may have other supporting classes too -->
+      <include name="fp/**/test/**/*.java"/>
+    </javac>
+  </target>
+
+  <target name="run-tests" depends="compile-tests">
+    <!-- Register the exectest task -->
+    <echo message="Register and execute the ExecTest class"/> 
+    <taskdef name="exectest"
+             classname="ExecTest"
+	     classpath="${CLASSPATH}:${build}/fp/util/ant/"/>
+
+    <!-- Execute the exectest task -->
+    <exectest classpath="${CLASSPATH}:${build}"
+              verbose="${test.verbosity}"
+              basepackagepath="fp"
+              onerror="${test.error.mode}"
+	      printresults="${test.print.results}"> 
+      <fileset dir="${start.path}/fp/${start.dir}">
+        <include name="${test.pattern.path}"/>
+      </fileset>
+    </exectest>
+
+    <echo message="For more test options/usage, run the following:"/>
+    <echo message="   ant test-usage"/>
+  </target><!-- end run-test target -->
+
+  <!-- =================================================================== -->
+  <!-- runs the tests in "no-fail" mode                                    -->
+  <!-- =================================================================== -->
+  <target name="test-no-fail" depends="init,compile"
+	  description="compiles and runs the tests; won't exit on 1st failure">
+    <echo message="For more test options/usage, run the following:"/>
+    <echo message="   ant test-usage"/>
+
+    <!-- Invoke the test target -->
+    <antcall target="run-test">
+      <param name="test.error.mode" value="nofail"/>
+    </antcall>
+  </target><!-- end test-no-fail target -->
+
+  <!-- =================================================================== -->
+  <!-- Shows the usage for tests                                           -->
+  <!-- =================================================================== -->
+  <target name="test-usage" 
+	  description="explains how to use the test targets">
+    <echo message="To limit the tests run, set the start.dir property."/>
+    <echo message=" (e.g. ant -Dstart.dir=util run-tests)"/>
+    <echo message="To modify behavior on an error, set the test.error.mode property."/>
+    <echo message=" (e.g. ant -Dtest.error.mode=failimmediately run-tests)"/>
+    <echo message=" Accepted values for test.error.mode are"/>
+    <echo message=" - failimmediately: Ant fails immediately if a tests fails"/>
+    <echo message=" - failatend:       Ant fails at end of all tests if any test fails"/>
+    <echo message=" - nofail:          Ant does not fail if a test fails"/>
+    <echo message=" Also, invoking the test-no-fail target will automatically"/>
+    <echo message=" set test.error.mode to nofail."/>
+    <echo message="To see more test output, set the test.verbosity property to true"/>
+    <echo message=" (e.g. ant -Dtest.verbosity=true run-tests)"/>
+    <echo message="To see specific test output, set the test.print.results property to:"/>
+    <echo message=" - failedtests:   Print names of failed tests (default)"/>
+    <echo message=" - passedtests:   Print names of passed tests"/>
+    <echo message=" - alltests:   Print names of failed and passed tests"/>
+    <echo message=" - notests:   Do not print names of failed or passed tests"/>
+    <echo message=" (e.g. ant -Dtest.print.results=failedtests run-tests)"/>
+  </target><!-- end test-usage target -->
+
+  <target name="clean-tests"
+        description="clean up tests" >
+    <!-- Delete tests from the ${build} directory tree -->
+    <echo message="Delete **/test/** dirs from build/fp directory tree"/>
+    <delete>
+      <fileset dir="${build}/fp">
+        <include name="**/test/**"/>
+      </fileset>
+    </delete>
+  </target>
+
+  <target name="usage">
+    <echo message="ant init" />
+    <echo message="ant compile" />
+    <echo message="ant dist" />
+    <echo message="ant clean" />
+    <echo message="ant init-tests" />
+    <echo message="ant compile-tests" />
+    <echo message="ant run-tests" />
+    <echo message="ant clean-tests" />
+    <echo message="ant test-usage" />
+  </target> 
+
+</project>
+
+
+<!-- End of file -->

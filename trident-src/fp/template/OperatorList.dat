@@ -1,0 +1,874 @@
+;LA-CC 05-135 Trident 0.7.1
+;
+;Copyright Notice
+;Copyright 2006 (c) the Regents of the University of California.
+;
+;This Software was produced under a U.S. Government contract 
+;(W-7405-ENG-36) by Los Alamos National Laboratory, which is operated by 
+;the University of California for the U.S. Department of Energy. The U.S. 
+;Government is licensed to use, reproduce, and distribute this Software. 
+;Permission is granted to the public to copy and use this Software without 
+;charge, provided that this Notice and any statement of authorship are 
+;reproduced on all copies. Neither the Government nor the University makes 
+;any warranty, express or implied, or assumes any liability or 
+;responsibility for the user of this Software.
+
+
+#
+# OperatorList.dat
+# $Id: OperatorList.dat 2578 2006-06-19 23:02:04Z kpeter $
+#
+# SYMBOL
+# NAME
+# FORMAT
+# TRAITS
+# DEFS USES
+
+#
+# Nop -- does nothing.
+#
+#
+#
+NOP 
+nop Nullary 
+none
+0 0
+
+#
+# Return -- uh, we need to eliminate returns and tie them to where they
+# go since we will not have an execution stack.
+#
+# ret void
+# ret int 5
+#
+RET 
+ret Return 
+ret
+0 1
+
+#
+# br label <dest>
+#
+GOTO 
+goto Goto 
+branch
+0 1
+
+# 
+# 
+# br bool <cond>, label <iftrue>, label <iffalse>
+#
+BR 
+br Branch
+branch | conditional
+0 3
+
+#
+#
+# switch <int_type> <val>, label <def_dest> [<int_type> <val>, label <dest> ..]
+#
+SWITCH 
+switch Switch
+branch | var_uses | conditional
+0 -1
+
+# invoke ?
+# unwind ?
+
+#
+# <result> = add <type> <var1>, <var2>
+#
+ADD 
+add Binary
+commutative
+1 2
+
+#
+# <result> = sub <type> <var1>, <var2>
+#
+SUB 
+sub Binary
+none
+1 2
+
+#
+# <result> = mul <type> <var1>, <var2>
+#
+MUL 
+mul Binary
+commutative
+1 2
+
+#
+# <result> = div <type> <var1>, <var2>
+#
+DIV 
+div Binary
+none
+1 2
+
+# rem - remainder
+REM 
+rem Binary
+none
+1 2
+
+#
+# <result> = seteq <type> <var1>, <var2>
+#
+SETEQ 
+seteq Test
+commutative
+1 2
+
+#
+# <result> = setne <type> <var1>, <var2>
+#
+SETNE 
+setne Test
+commutative
+1 2
+
+#
+# <result> = setlt <type> <var1>, <var2>
+#
+SETLT
+setlt Test
+none
+1 2
+
+#
+# <result> = setgt <type> <var1>, <var2>
+#
+SETGT
+setgt Test
+none
+1 2
+
+#
+# <result> = setle <type> <var1>, <var2>
+#
+SETLE 
+setle Test
+none
+1 2
+
+#
+# <result> = setge <type> <var1>, <var2>
+#
+SETGE
+setge Test
+none
+1 2
+
+#
+# <result> = and <type> <var1>, <var2>
+#
+AND
+and Binary
+commutative
+1 2
+
+#
+# <result> = or <type> <var1>, <var2>
+#
+OR
+or Binary
+commutative
+1 2
+
+#
+# <result> = xor <type> <var1>, <var2>
+#
+XOR
+xor Binary
+commutative
+1 2
+
+#
+# <result> = shl <type> <var1>, ubyte <var2>
+#
+SHL
+shl Binary
+none
+1 2
+
+#
+# <result> = shr <type> <var1>, ubyte <var2>
+#
+SHR
+shr Binary
+none
+1 2
+
+#
+# <result> = abs <type> <var1>
+#
+ABS
+abs Unary
+none
+1 1
+
+#
+# <result> = inv <type> <var1>
+#
+INV
+inv Unary
+none
+1 1
+
+#
+# <result> = not <type> <var1>
+#
+NOT
+not Unary
+none
+1 1
+
+#
+# <result> = sqrt <type> <var1>
+#
+SQRT
+sqrt Unary
+none
+1 1
+
+
+#
+# <result> = malloc <type>, uint <NumElements>
+# <result> = malloc <type>
+#
+MALLOC
+malloc Malloc
+alloc
+1 1
+
+# free
+
+#
+# <result> = load <type>* <pointer>
+# <result> = volatile load <type>* <pointer>
+#
+LOAD
+load Load
+load
+1 1
+
+#
+# <result> = aload <type>* <addr> <primal> 
+# <result> = volatile load <type>* <addr> <primal>
+#
+ALOAD
+aload ALoad
+load
+1 2
+
+#
+# store <type> <value>, <type>* <pointer>
+# volatile store <type> <value>, <type>* <pointer>
+#
+STORE
+store Store
+store
+1 1
+
+#
+# astore <type> <value>, <type>* <addr> <primal>
+# volatile store <type> <value>, <type>* <addr> <primal>
+#
+ASTORE
+astore AStore
+store
+0 3
+
+# getelementptr
+# <result> = getelementptr <type> <pointer> [, <type> <value> ]*
+GETELEMENTPTR
+getelementptr Getelementptr
+var_uses | getelementptr
+1 1 
+
+#
+# <result> = phi <type> [ <val0>, label0], ...
+#
+PHI
+phi Phi
+phi | var_uses
+1 -1
+
+#
+# <result> = call <type> <function> ([<argtype> <argval>,]*)
+# 
+CALL
+call Call
+call | var_uses
+1 -1
+
+#
+# <result> = case <type> <value> to <type2>
+#
+CAST
+cast Cast
+cast
+1 1
+
+#
+# <result> = select bool <cond>, <type> <val1>, <type> <val2>
+#
+SELECT
+select Select
+select
+1 3
+
+# call
+
+#
+# This is the end of the generic operators -- after this there are only
+# hardware library operators. 
+#
+LIBOP
+libop Nullary
+none
+0 0
+
+#
+# Basic FP Library
+#
+# LIBRARY SYMBOL
+# NAME FORMAT
+# TRAITS
+# DEFS USES
+# INPUT CLASS
+# PIPE_STAGES LATENCY AREA
+
+# fpadd
+BASIC AA_FPADD
+aa_fpadd Binary
+commutative
+1 2
+FP
+3 0.0 -1.0
+4
+
+# dpadd
+BASIC AA_DPADD
+aa_dpadd Binary
+commutative
+1 2
+FP
+3 0.0 -1.0
+4
+
+# fpsub
+BASIC AA_FPSUB
+aa_fpsub Binary
+none
+1 2
+FP
+3 0.0 -1.0
+5
+
+# dpsub
+BASIC AA_DPSUB
+aa_dpsub Binary
+none
+1 2
+FP
+3 0.0 -1.0
+5
+
+# fpmul
+BASIC AA_FPMUL
+aa_fpmul Binary
+commutative
+1 2
+FP 
+4 0.0 -1.0
+16
+
+# dpmul
+BASIC AA_DPMUL
+aa_dpmul Binary
+commutative
+1 2
+FP 
+4 0.0 -1.0
+16
+
+
+# fpdiv
+BASIC AA_FPDIV
+aa_fpdiv Binary
+none
+1 2
+FP
+15 0.0 -1.0
+64
+
+# dpdiv
+BASIC AA_DPDIV
+aa_dpdiv Binary
+none
+1 2
+FP
+30 0.0 -1.0
+64
+
+# fpinv
+BASIC AA_FPINV
+aa_fpinv Unary
+none
+1 1
+FP
+0 0.0 -1.0
+
+# fpinv
+BASIC AA_DPINV
+aa_dpinv Unary
+none
+1 1
+FP
+0 0.0 -1.0
+
+# fpsqrt
+BASIC AA_FPSQRT
+aa_fpsqrt Unary
+none
+1 1
+FP
+14 0.0 -1.0
+128
+
+# dpsqrt
+BASIC AA_DPSQRT
+aa_dpsqrt Unary
+none
+1 1
+FP
+29 0.0 -1.0
+128
+
+BASIC AA_FPABS
+aa_fpabs Unary
+none
+1 1
+FP
+0 0.0 -1.0
+1
+
+BASIC AA_DPABS
+aa_dpabs Unary
+none
+1 1
+FP
+0 0.0 -1.0
+1
+
+# iadd
+BASIC AAA_IADD
+aaa_iadd Binary
+commutative
+1 2
+INT
+0 0.7 -1.0
+
+# isub
+BASIC AAA_ISUB
+aaa_isub Binary
+none
+1 2
+INT
+0 0.7 -1.0
+
+# imul
+BASIC AAA_IMUL
+aaa_imul Binary
+commutative
+1 2
+INT
+2 0.0 -1.0
+
+# idiv
+BASIC AAA_IDIV
+aaa_idiv Binary
+none
+1 2
+INT
+8 0.0 -1.0
+
+# iinv
+BASIC AAA_IINV
+aaa_iinv Unary
+none
+1 1
+INT
+0 0.0 -1.0
+
+# isqrt
+BASIC AAA_ISQRT
+aaa_isqrt Unary
+none
+1 1
+INT
+32 0.0 -1.0
+64
+
+# Now for FP and INT comparison are the same.  This may not be true
+# for all input classes (?).
+#
+# seteq
+BASIC AAA_SETEQ
+aaa_seteq Test
+commutative
+1 2
+ANY
+0 0.9 -1.0
+
+# setne
+BASIC AAA_SETNE
+aaa_setne Test
+commutative
+1 2
+ANY
+0 0.9 -1.0
+
+# setlt
+BASIC AAA_SETLT
+aaa_setlt Test
+none
+1 2
+ANY
+0 0.9 -1.0
+
+# setgt
+BASIC AAA_SETGT
+aaa_setgt Test
+none
+1 2
+ANY
+0 0.9 -1.0
+
+# setle
+BASIC AAA_SETLE
+aaa_setle Test
+none
+1 2
+ANY
+0 0.9 -1.0
+
+# setge
+BASIC AAA_SETGE
+aaa_setge Test
+none
+1 2
+ANY
+0 0.9 -1.0
+
+# and
+BASIC AAA_AND
+aaa_and Binary
+commutative
+1 2
+ANY
+0 0.3 -1.0
+
+# or
+BASIC AAA_OR
+aaa_or Binary
+commutative
+1 2
+ANY
+0 0.3 -1.0
+
+# xor
+BASIC AAA_XOR
+aaa_xor Binary
+commutative
+1 2
+ANY
+0 0.5 -1.0
+
+# not
+BASIC AAA_NOT
+aaa_not Unary
+none
+1 1
+ANY
+0 0.0 -1.0
+
+# shl - this depends on whether it is variable or constant shift.
+# variable shift takes log(2)(width) at least.  Assuming 32 bits.
+BASIC AAA_SHL
+aaa_shl Binary
+none
+1 2
+ANY
+5 0.0 -1.0
+
+# constant shift
+BASIC AAA_CSHL
+aaa_cshl Binary
+none
+1 2
+ANY
+0 0.0 -1.0
+
+# shr - (same issues as shl)
+#
+BASIC AAA_SHR
+aaa_shr Binary
+none
+1 2
+ANY
+5 0.0 -1.0
+
+# cshr
+BASIC AAA_CSHR
+aaa_cshr Binary
+none
+1 2
+ANY
+0 0.0 -1.0
+
+# load (depends on where it is being loaded from and what we are loading (e.g. constants.))
+BASIC AAA_LOAD
+aaa_load Load
+load
+1 1
+ANY
+0 0.3 -1.0
+0
+
+# aload -- this is for block ram access only.
+BASIC AAA_ALOAD
+aaa_aload ALoad
+load
+1 2
+ANY
+1 0.0 -1.0
+0
+
+# store (same as load -- opposite direction)
+BASIC AAA_STORE
+aaa_store Store
+store
+1 2
+ANY
+0 0.3 -1.0
+1
+
+# astore (same as aload -- opposite direction)
+BASIC AAA_ASTORE
+aaa_astore AStore
+store
+0 3
+ANY
+1 0.0 -1.0
+1
+
+# select (muxing)
+BASIC AAA_SELECT
+aaa_select Select
+select
+1 3
+ANY
+0 0.7 -1.0
+
+# phi should be "lowered" into selects.
+# cast (?)
+
+# xd1_aload -- this is for external ram access only.
+#XD1 XD1_ALOAD
+#xd1_aload ALoad
+#load
+#1 2
+#ANY
+#8 0.0 -1.0
+#0
+
+# store (same as load -- opposite direction)
+#XD1 XD1_ASTORE
+#xd1_astore AStore
+#store
+#0 3
+#ANY
+#1 0.0 -1.0
+#1
+
+#fp operators from the quixilica library
+BASIC QX_FPADD
+qx_fpadd Binary
+commutative 
+1 2
+FP
+11 0.0 -1.0
+371
+
+BASIC QX_DPADD
+qx_dpadd Binary
+commutative 
+1 2
+FP
+12 0.0 -1.0
+815
+
+BASIC QX_FPSUB
+qx_fpsub Binary
+none 
+1 2
+FP
+11 0.0 -1.0
+371
+
+BASIC QX_DPSUB
+qx_dpsub Binary
+none 
+1 2
+FP
+12 0.0 -1.0
+815
+
+BASIC QX_FPMUL_SOFT
+qx_fpmul_soft Binary
+none 
+1 2
+FP
+8 0.0 -1.0
+380
+
+BASIC QX_DPMUL_SOFT
+qx_dpmul_soft Binary
+none 
+1 2
+FP
+9 0.0 -1.0
+1282
+
+BASIC QX_FPDIV
+qx_fpdiv Binary
+none 
+1 2
+FP
+27 0.0 -1.0 
+777
+
+BASIC QX_DPDIV
+qx_dpdiv Binary
+none 
+1 2
+FP
+56 0.0 -1.0 
+3127
+
+BASIC QX_FPSQRT
+qx_fpsqrt Unary
+none 
+1 1
+FP
+27 0.0 -1.0 
+673
+
+BASIC QX_DPSQRT
+qx_dpsqrt Unary
+none 
+1 1
+FP
+56 0.0 -1.0 
+2767
+
+BASIC TR_FPINV
+tr_fpinv Unary
+none
+1 1
+FP
+0 0.0 -1.0
+1
+
+BASIC TR_DPINV
+tr_fpinv Unary
+none
+1 1
+FP
+0 0.0 -1.0
+1
+
+BASIC TR_FPABS
+tr_fpabs Unary
+none
+1 1
+FP
+0 0.0 -1.0
+1
+
+BASIC TR_DPABS
+tr_fpabs Unary
+none
+1 1
+FP
+0 0.0 -1.0
+1
+
+BASIC TR_UCAST
+tr_ucast Cast
+none
+1 1
+INT
+1 0.0 0.0
+1
+
+BASIC TR_DCAST
+tr_dcast Cast
+none
+1 1
+INT
+0 0.0 0.0
+0
+
+BASIC TR_ITOFP
+tr_itofp Cast
+none
+1 1
+INT
+23 0.0 0.0
+1
+
+BASIC TR_ITODP
+tr_itodp Cast
+none
+1 1
+INT
+24 0.0 0.0
+1
+
+BASIC TR_FPTODP
+tr_fptodp Cast
+none
+1 1
+FP
+1 0.0 0.0
+1
+
+BASIC TR_DPTOFP
+tr_dptofp Cast
+none
+1 1
+FP
+1 0.0 0.0
+1
+
+BASIC TR_FPTOI
+tr_fptoi Cast
+none
+1 1
+FP
+17 0.0 0.0
+1
+
+BASIC TR_DPTOI
+tr_dptoi Cast
+none
+1 1
+FP
+18 0.0 0.0
+1
+

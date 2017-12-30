@@ -1,0 +1,17 @@
+<!ELEMENT hardware (name|chip)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT address (#PCDATA)>
+<!ELEMENT chip (name|count|size|word_size|area_max_usage|area_min_usage|area|resource|port|address)*>
+<!ATTLIST chip type (fpga|ram|rom) "rom">
+<!ELEMENT area_max_usage (#PCDATA)>
+<!ELEMENT area_min_usage (#PCDATA)>
+<!ELEMENT area (#PCDATA)>
+<!ELEMENT resource (name|count|size|address|dimension1|dimension2)*>
+<!ATTLIST resource type (blockram|multiplier|register) "blockram">
+<!ELEMENT count (#PCDATA)>
+<!ELEMENT size (#PCDATA)>
+<!ELEMENT word_size (#PCDATA)>
+<!ELEMENT dimension1 (#PCDATA)>
+<!ELEMENT dimension2 (#PCDATA)>
+<!ELEMENT port (name|count|size|read_latency|write_latency|clock)*>
+<!ATTLIST port type (address_read|address_write|address_rw|data_read|data_write|data_rw) "data_read">

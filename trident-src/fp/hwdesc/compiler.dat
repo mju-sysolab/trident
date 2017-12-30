@@ -1,0 +1,41 @@
+(compiler Trident
+
+  (config_default fp/hwdesc)
+  (target_default vhdl)
+
+  (library quixilica
+    (default yes)
+    (name quixilica)
+    (short_name qx)
+    ; do I need a second class for synthesis ???
+    ; (class fp.synthesis.QXOperationSelect)
+    (class fp.passes.QXOperationSelection)
+    (file quixilica.dat)
+    (require trident.dat)
+  )
+  
+  (library fplib
+    (name aa_fplib)
+    (short_name aa)
+    (class fp.passes.AAOperationSelection)
+    (file aa_fplib.dat)
+    (require trident.dat)
+  )
+
+  (platform xd1
+    (default yes)
+    (name xd1)
+    ; this is not implemented yet!
+    (class fp.synthesis.XD1TopLevel)
+    (hardware xd1_hw.dat)
+    (interface xd1_inter.dat) 
+  )
+
+  (platform osiris
+    (name osiris)
+    (class fp.synthesis.OsirisTopLevel)
+    (hardware osiris_hw.dat)
+    (interface osiris_inter.dat)
+  )
+
+)

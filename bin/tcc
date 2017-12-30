@@ -1,0 +1,190 @@
+#! /bin/sh
+
+# LA-CC 05-135 Trident 0.7.1
+#
+# Copyright Notice
+# Copyright 2006 (c) the Regents of the University of California.
+#
+# This Software was produced under a U.S. Government contract 
+# (W-7405-ENG-36) by Los Alamos National Laboratory, which is operated by 
+# the University of California for the U.S. Department of Energy. The U.S. 
+# Government is licensed to use, reproduce, and distribute this Software. 
+# Permission is granted to the public to copy and use this Software without 
+# charge, provided that this Notice and any statement of authorship are 
+# reproduced on all copies. Neither the Government nor the University makes 
+# any warranty, express or implied, or assumes any liability or 
+# responsibility for the user of this Software.
+#
+
+# Script to compile C file via Trident compiler
+
+VERSION=0.7.1
+
+LANL=1
+echo $VERSION | grep "@" > /dev/null
+if [ $? -eq 0 ]; then
+  LANL=0;
+fi
+
+# Do some error checking
+
+if [ -z "$LLVMGCCDIR" ]; then
+    if [ $LANL -eq 0 -a -f /home/rasr/apps/llvm/llvm.sh ]; then
+	. /home/rasr/apps/llvm/llvm.sh
+        GCC="$LLVMGCCDIR"/bin/llvm-gcc
+    else
+	which llvm-gcc > /dev/null
+	if [ $? -gt 0 ]; then
+	    echo "llvm-cc must be in user's path or "
+	    echo "Environment variable LLVMGCCDIR must be set for Trident"
+	    exit
+	else
+	    GCC=$(which llvm-gcc)
+	fi
+    fi
+else
+    GCC="$LLVMGCCDIR"/bin/llvm-gcc
+fi
+
+if [ -z "$CLASSPATH" ]; then
+    if [ $LANL -eq 0 && -f /home/rasr/apps/trident/trident.sh ]; then
+	 . /home/rasr/apps/trident/trident.sh
+    else
+	echo "Environment variable CLASSPATH must be set for Trident"
+	exit
+    fi
+fi
+
+which java > /dev/null
+if [ $? -gt 0 ]; then
+  echo "java must be in user's path"
+  exit
+fi
+
+#
+# I think I should have a trident_top and use that to find llv and
+# modify the class path...
+#
+
+# this could test for Debug and Optimized versions :P
+
+echo $TRIDENT_TOP
+if [ -n $TRIDENT_TOP ]; then
+    if [ -d $TRIDENT_TOP/build ]; then 
+	# build env
+	LLV_PATH=$TRIDENT_TOP/build/llv-obj/Debug/bin
+	CLASSPATH=$CLASSPATH:$TRIDENT_TOP/build
+    elif [ -d $TRIDENT_TOP/llv-src ]; then
+	# shipped env
+	if [ -d $TRIDENT_TOP/llv-src/Debug/bin ]; then
+	    LLV_PATH=$TRIDENT_TOP/llv-src/Debug/bin
+        fi
+	JARS=`echo $TRIDENT_TOP/lib/*.jar`
+        # add all the jars for you
+        for j in $JARS; do
+	    CLASSPATH=$CLASSPATH:$j
+	done
+    fi
+fi
+
+
+
+help="no"
+ARG_CNT=$#
+
+#
+# This is weak -- it only works because all of our single letter options
+# take an input.
+#
+
+while [ $# != 0 ]
+do  case "$1" in
+  -h)   help="yes" ;;
+  --llv=*) LLV_PATH=`echo $1 | cut -f 2- -d =` ;;
+  --llvm=*)  ;;
+  --gcc=*) ;;
+  --*)   TRIDENT_OPTIONS="$TRIDENT_OPTIONS $1";;
+  -b)   TRIDENT_OPTIONS="$TRIDENT_OPTIONS $1";;
+  -*)   TRIDENT_OPTIONS="$TRIDENT_OPTIONS $1 $2"; shift;;
+  *)    CFILE=$1; FUNCTION=$2; shift;;
+  esac
+  shift
+done
+
+# Check if no arguments
+if [ $ARG_CNT -eq 0 -o $ARG_CNT -eq 1 -o $help = "yes" ]; then
+    base_name=$(basename $0)
+    echo "Usage: $base_name [-h] [--llv=/path/to/llv] [compiler-options] input_file function_name"
+    echo ""
+    echo "Version $VERSION"
+    echo ""
+    echo "View compiler options by using the command: 'tcc -h' "
+    echo "Environment variables LLVMGCCDIR and CLASSPATH must be set correctly"
+    echo "Executables llv and java must be in the user's path"
+    echo ""
+
+    java -classpath ${CLASSPATH} fp.Compile -h
+
+    exit 0
+fi
+
+#echo " llv $LLV_PATH"
+
+if [ -z $LLV_PATH ]; then
+    which llv > /dev/null
+    if [ $? -gt 0 ]; then
+	echo "llv must be in user's path or built in the usual place."
+	exit
+    fi
+    LLV_PATH=$(dirname $(which llv))
+fi
+
+
+#GCC="$LLVMGCCDIR"/bin/llvm-gcc
+
+# Get function of input program
+#index=$#-1
+#FUNCTION=${ $index }
+
+#echo "$FUNCTION - function "
+
+# Get basename of input program
+#CFILE=${ $# - 1 }
+CFILE_BASE=`basename $CFILE .c`
+
+# Get options to the compiler
+#echo $TRIDENT_OPTIONS
+#TRIDENT_OPTIONS=""
+#i=$#-2
+
+#while [ $i -gt 0 ]; do
+#  eval NEW_OPTION="\$${i}" 
+#  TRIDENT_OPTIONS="${NEW_OPTION} ${TRIDENT_OPTIONS}"
+#  i=$i-1
+#done
+
+# Run gcc on C file
+echo "${GCC} -c -Wa,-disable-opt ${CFILE} -o ${CFILE_BASE}.o"
+${GCC} -c -Wa,-disable-opt ${CFILE} -o ${CFILE_BASE}.o
+result=$?
+if [ $result -ne 0 ]; then
+    exit $result
+fi
+
+# Run llv on .o bytecode file to produce .llv assembly file
+echo "llv -f -march=v ${CFILE_BASE}.o -o ${CFILE_BASE}.llv"
+$LLV_PATH/llv -f -march=v ${CFILE_BASE}.o -o ${CFILE_BASE}.llv
+result=$?
+if [ $result -ne 0 ]; then
+  exit $result
+fi
+
+# Run trident on .llv to produce VHDL
+echo "java -classpath ${CLASSPATH} fp.Compile ${TRIDENT_OPTIONS} ${CFILE_BASE}.llv ${FUNCTION}"
+java -classpath ${CLASSPATH} fp.Compile ${TRIDENT_OPTIONS} ${CFILE_BASE}.llv ${FUNCTION}
+result=$?
+if [ $result -ne 0 ]; then
+  exit $result
+fi
+
+

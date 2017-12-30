@@ -1,0 +1,9 @@
+\section{Running the Tests and Examples}
+
+The float compiler has both tests and examples.  Tests are unit tests that are written as Java classes (starting with TEST) and located within the fp directory hierarchy in subdirectories called "test".  Examples are sample programs that are located in the example directory hierarchy in subdirectories that comprise "suites" of examples.  
+
+To compile and run tests from the compiler directory, the ant targets are "init-tests", "compile-tests", "run-tests", "test-usage" and "clean-tests".  To compile and run the tests from the "fp" dirctory,the ant targets are "init-tests", "run-tests", "test-usage" and "clean-tests".  These targets, by default, do work for all the tests.  If you want to limit the tests, you can give ant the -D option.  "ant -Dstart.path=util run-tests". 
+
+To compile and run the examples from the compiler directory, the ant targets are "init-examples", "compile-examples", "run-examples", "example-usage" and "clean-examples".  The ant targets are the same if you are compiling and running the examples from the "examples" directory.  You can limit the suites of examples run by giving ant the -D option.  "ant -Dstart.dir=photon run-examples".
+
+

@@ -1,0 +1,202 @@
+\section{Using the Trident Compiler}
+Assuming that everything worked correctly in the previous section, here we explain some
+of the options and how to use the Trident compiler.
+
+\subsection{Trident}
+
+The compiler is made up of three separate parts, which are all
+integrated in the tcc script.  The first part is the LLVM cfront-end,
+which reads the input C file and generates LLVM bytecode.  The next
+part of the compiler is llv.  llv takes the generated LLVM bytecode,
+optimizes it in LLVM and generates parseable text file, which has the
+extension .llv.  This is still a target independent representation.
+The .llv file is parsed by the java class fp.Compile, undergoes
+further optimization and finally is targeted to a particular floating
+point library.  The output result is VHDL.
+
+
+An example of using tcc:
+
+\begin{verbatim}
+tcc -t vhdl if_a.c run
+\end{verbatim}
+
+The -t option selects the output type and the next two options if\_a.c
+and run are the input file and the function to be compiled.  Trident
+will only compile a single function from an input file, the function
+cannot have any parameters and cannot return any results.  For
+example:
+
+\begin{verbatim}
+extern int a,b,c,d;
+
+void run() { 
+  if (a < b) {
+    a = c;
+  } else {
+    a = d;
+  }
+}
+\end{verbatim}
+
+The run function does not have any input parameters.  However,
+variables that are declared as extern can be used as inputs or outputs
+(or both.)  Any variables that are declared as extern will get
+registers that can be read and written.  Other variables may not be
+able to be seen outside of the datapath.
+
+
+Options to tcc:
+
+\begin{verbatim}
+Usage: tcc [-h] [--llv=/path/to/llv] [compiler-options] input_file function_name
+
+Version 0.5
+
+View compiler options by using the command: 'tcc -h' 
+Environment variables LLVMGCCDIR and CLASSPATH must be set correctly
+Executables llv and java must be in the user's path
+\end{verbatim}
+
+
+Most options to tcc pass to the backend Trident compiler as does the -h options.  The
+backend compiler has the following options:
+
+\begin{verbatim}
+Compile [Options] input_file function_name
+
+Short Options:
+-a filename     : Filename of architecture (hardware) description
+-b              : Generate Testbench -- experimental
+-h              : Get help -- good luck!
+-l libname      : Specify library, supporting quixilica, aa_fplib, 
+-t format       : Target output.  format can be set to "dot" or "vhdl"
+
+Long Options:
+--sched=sched_list
+        sched_list is comma-separated list which can include
+        asap, alap, or fd, and optionally nomod or mod
+
+        It is case insensitive.  You must choose either asap, alap, or force
+        directed.  It is default to run modulo scheduling on all loop blocks,
+        but to turn that off, you can add "nomod" within the string.  For
+        example:
+
+        --sched=fd,nomod
+
+        You can also, specify "mod", but that is the default.
+
+--sched.options=option_list
+        option_list is a comma-separated list which can include
+        considerpreds (tell schedule not to ignore predicates)
+        dontpack (don't pack multiple less than 1-clock tick instructions within a single cycle)
+        conserve_area (conserve area by only using as many logic units as 
+                necessary so as to not slow down execution of the design)
+        fd_maxtrycnt (tell the compiler how many times to attempt force-directed 
+                scheduling before giving up)
+        ms_maxtrycnt (how many times to attempt modulo scheduling)
+        cyclelength (set the length of a clock tick (the default is 1.0))
+
+        The options can be set either by using the long opt, "sched.options" to set several at
+        once (like this:
+
+        --sched.options=considerpreds,dontpack,conserve_area
+
+        or they can be set individually by saying:
+
+        --sched.options.considerpreds
+\end{verbatim}
+
+Several options may not be very useful and they also may not be very
+well tested.  \textbf{-a} is for specifying a different hardware target.
+Currently only one hardware target is truly supported -- specifying
+other files here is not well tested.  \textbf{-b} generates a skeleton VHDL
+testbench for the top-level cell.  It does this by examining the cell,
+instancing it and inserting some reset statements.  Treat this option
+as experimental -- if it works for you, good -- if it does not, you
+were warned.  \textbf{-l} is for specifying additional libraries.  This option
+is dynamic and supports the floating point libraries it has been told
+about.  aa\_fplib is the library I have supplied. \textbf{-t} specifies the
+output format, vhdl or dot.  vhdl produces a vhdl netlist and dot is a
+schematic view of that netlist.  Please be aware that hierarchical
+netlists quickly exceed dotty's (graphviz) ability to render dot
+files.
+
+The long options are described above.  Please note that by default
+loops are modulo scheduled and non-loop blocks are scheduled using a
+force-directed algorithm.  Other options modify how particulars within
+the scheduling algorithms.
+
+In addition to Dot circuit representations, Trident currently creates
+some debug information in Dot format.  The
+\textit{cfile}\_\textit{function}.dot file is the final optimized
+version of the function before synthesis. The synthesized version is
+called syn\_\textit{cfile}.dot.  Other dot files represent the data
+flow graph of individual hyperblocks.
+
+
+\subsection{Simulation}
+
+Trident generates a single VHDL file representing the compiled design.
+Although, there is just one file, the file contains multiple
+heirarchical VHDL Design Units and contains the elements shown in
+Figure~\ref{fig:abs_circuit}.  To allow for correct compilation, the
+circuit elements are inserted in the VHDL file from the lowest level
+of heirarchy (leaves) to the highest level (top).  At the top level,
+all of the inputs and outputs are available as registers as well as
+\textit{start} and \textit{reset} signals.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=.6\textwidth]{figures/abstract_circuit}
+\caption{\label{fig:abs_circuit} Circuit Elements found in the Trident compiler.}
+\end{figure}
+
+%
+% Compilation and Libraries
+
+Compilation of Trident generated designs usually requires several
+support libraries.  It is best to compile the libraries first and then
+compile the design to verify that all circuit objects have been
+correctly instanced.  A floating-point circuit will require a
+floating-point library as well as the trident support library.  The
+floating-point library should provide its own means of compilation.
+The trident support library has several operations that are not
+normally included in most available floating-point libraries.  This
+includes casts and a few other functions(e.g., float to int, double to
+long, int to float, long to double, float to double, double to float,
+fpabs, and fpinv).\footnote{Casts are ugly operations that are easy to
+  imply when mixing floats with integer types.}
+
+An example of what compilation may look like:
+
+\begin{verbatim}
+> vlib work
+> vmap work work
+> vmap fplib /my/path/to/fplib/fplib
+> vcom -93 example.vhd tb_example.vhd
+\end{verbatim}
+
+%
+% Test benches.
+
+The compiler does have the ability to generate a skeleton VHDL
+testbench for generated designs.  This testbench does not actually
+exercise the circuit, but instances it and produces process that
+can be used to provide input and test the results.  The generated
+testbench saves the user the effort of writing the testbench from
+scratch.
+
+%
+% expand
+The synthesized circuit has a particular model of execution.  The
+testbench must follow this model to ensure proper circuit function.
+The circuit expects all of the inputs to be available before the start
+signal is toggled.  Reset should be toggled before start and will
+reset any values written to registers before reset has been toggled.
+The circuit design does not eliminate the possibility of modifying the
+registers during operation, however, this may result in incorrect
+operation.
+
+
+%\subsection{Final Synthesis}
